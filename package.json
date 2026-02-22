@@ -3,13 +3,15 @@
 	"version": "0.0.0",
 	"private": true,
 	"scripts": {
+		"setup": "scripts/setup.sh",
+		"dev": "scripts/dev.sh --test-scheduled",
 		"deploy": "wrangler deploy",
-		"dev": "wrangler dev --test-scheduled",
-		"start": "wrangler dev --test-scheduled",
-		"cf-typegen": "wrangler types",
+		"deploy:dry": "wrangler deploy --dry-run",
 		"test": "vitest run",
-		"lint": "eslint src test",
+		"test:watch": "vitest watch",
 		"typecheck": "tsc --noEmit",
+		"lint": "eslint src test",
+		"cf-typegen": "wrangler types",
 		"prepare": "husky"
 	},
 	"devDependencies": {

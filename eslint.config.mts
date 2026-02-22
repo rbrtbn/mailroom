@@ -43,16 +43,12 @@ export default tseslint.config(
 				} satisfies PreferImmutableTypesConfig,
 			],
 
-			// Exhaustive pattern matching on discriminated unions
+			// TypeScript specific rules
 			'@typescript-eslint/switch-exhaustiveness-check': 'error',
-
-			// Import hygiene
-			'simple-import-sort/imports': 'error',
-			'simple-import-sort/exports': 'error',
-			'no-restricted-imports': [
+			'@typescript-eslint/restrict-template-expressions': [
 				'error',
 				{
-					patterns: [{ group: ['./*', '../*'], message: 'Use ~/ path alias instead of relative imports.' }],
+					allowNumber: true,
 				},
 			],
 
@@ -72,7 +68,15 @@ export default tseslint.config(
 				},
 			],
 
-			// Object style
+			// Syntax/style
+			'simple-import-sort/imports': 'error',
+			'simple-import-sort/exports': 'error',
+			'no-restricted-imports': [
+				'error',
+				{
+					patterns: [{ group: ['./*', '../*'], message: 'Use ~/ path alias instead of relative imports.' }],
+				},
+			],
 			'object-shorthand': ['error', 'always'],
 		},
 	},

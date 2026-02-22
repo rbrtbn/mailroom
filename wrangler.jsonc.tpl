@@ -7,13 +7,20 @@
 	"name": "mailroom",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-02-21",
-	"observability": {
-		"enabled": true
-	},
+	"compatibility_flags": ["nodejs_compat"],
 	"triggers": {
-		"crons": ["* * * * *"]
+		"crons": ["*/2 * * * *"],
 	},
-	"compatibility_flags": ["nodejs_compat"]
+	"kv_namespaces": [
+		{
+			"binding": "STATE_KV",
+			"id": "__KV_NAMESPACE_ID__",
+		},
+	],
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1, // 100% of invocations
+	},
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

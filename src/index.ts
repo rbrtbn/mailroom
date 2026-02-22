@@ -18,7 +18,7 @@
 export default {
 	fetch(req: Readonly<Request>): Readonly<Response> {
 		const { origin } = new URL(req.url);
-		const url = `${origin}/__scheduled?cron=*+*+*+*+*`;
+		const url = `${origin}/__scheduled?cron=*/2+*+*+*+*`;
 		return new Response(`To test the scheduled handler, ensure you have used the "--test-scheduled" then try running "curl ${url}".`);
 	},
 
