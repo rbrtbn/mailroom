@@ -10,6 +10,8 @@ export const EnvSchema = z.object({
 	RESEND_API_KEY: z.string().nonempty(),
 	PUSHOVER_USER_KEY: z.string().nonempty().optional(),
 	PUSHOVER_APP_TOKEN: z.string().nonempty().optional(),
+	POLICY_AUD: z.string().nonempty().optional(),
+	CF_TEAM_DOMAIN: z.string().nonempty().optional(),
 });
 
 export type ValidEnv = ReadonlyDeep<z.infer<typeof EnvSchema>>;

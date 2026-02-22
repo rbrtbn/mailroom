@@ -18,6 +18,12 @@ export const safeJson = (response: Readonly<Response>): ResultAsync<unknown, Net
 		message: 'Failed to parse JSON',
 	}));
 
+export const safeJsonBody = (request: Readonly<Request>): ResultAsync<unknown, NetworkError> =>
+	ResultAsync.fromPromise(request.json(), () => ({
+		type: 'network',
+		message: 'Failed to parse request body',
+	}));
+
 export const safeParse = <T>(schema: z.ZodType<T>, data: unknown): Result<T, ValidationError> => {
 	const result = schema.safeParse(data);
 	return result.success

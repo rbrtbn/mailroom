@@ -5,7 +5,7 @@ import type { ErrorResult } from '~/lib/types';
 
 import type { QueryEmailsArgs } from './chain';
 import type { JmapRequest } from './operations';
-import { execute, getMailboxes, queryEmails } from './operations';
+import { execute, getEmailsByIds, getMailboxes, queryEmails } from './operations';
 import {
 	type EmailGetResponse,
 	JmapResponseSchema,
@@ -43,6 +43,7 @@ export type JmapClient = {
 	call: (jmapRequest: JmapRequest) => ResultAsync<unknown[], ErrorResult>;
 	getMailboxes: () => ResultAsync<MailboxGetResponse, ErrorResult>;
 	queryEmails: (args?: QueryEmailsArgs) => ResultAsync<EmailGetResponse, ErrorResult>;
+	getEmailsByIds: (ids: readonly string[]) => ResultAsync<EmailGetResponse, ErrorResult>;
 };
 
 export const createJmapClient = (
@@ -57,5 +58,6 @@ export const createJmapClient = (
 			call,
 			getMailboxes: () => execute(session, call, getMailboxes),
 			queryEmails: (args?: QueryEmailsArgs) => execute(session, call, queryEmails(args)),
+			getEmailsByIds: (ids: readonly string[]) => execute(session, call, getEmailsByIds(ids)),
 		};
 	});

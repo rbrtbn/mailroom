@@ -12,6 +12,7 @@ import {
 	type InvocationChain,
 	type QueryEmailsArgs,
 	withEmailGet,
+	withEmailGetByIds,
 	withEmailQuery,
 	withMailboxGet,
 } from './chain';
@@ -78,6 +79,19 @@ export const queryEmailsMonadic = (args?: QueryEmailsArgs): JmapOperation<EmailG
 			),
 		),
 	parseResponse: ([, emails]) => safeParse(EmailGetResponseSchema, emails),
+});
+
+export const getEmailsByIds = (ids: readonly string[]): JmapOperation<EmailGetResponse> => ({
+	capabilities: MAIL_CAPS,
+	buildChain: (accountId) => {
+		const [chain] = withEmailGetByIds(emptyChain, {
+			accountId,
+			ids: [...ids],
+			properties: ['subject', 'from', 'receivedAt', 'preview'],
+		});
+		return chain;
+	},
+	parseResponse: ([emails]) => safeParse(EmailGetResponseSchema, emails),
 });
 
 // ── Executor: the only part that touches I/O ───────────────────────
