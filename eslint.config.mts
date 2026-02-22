@@ -98,6 +98,11 @@ export default tseslint.config(
 				},
 			],
 
+			// NOTE: eslint-plugin-neverthrow (installed) is NOT activated here.
+			// It uses the legacy context.parserServices.program API which is
+			// incompatible with typescript-eslint v8's projectService mode.
+			// Re-evaluate when the plugin supports the newer getTypeAtLocation() API.
+
 			// Syntax/style
 			'simple-import-sort/imports': 'error',
 			'simple-import-sort/exports': 'error',

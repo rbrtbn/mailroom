@@ -41,7 +41,7 @@ type BrandedCallId<M extends MethodName> = CallId & { readonly _method: M };
 // ── Method-specific chain steps ────────────────────────────────────
 // Each returns [newChain, brandedCallId] — the State monad pattern.
 
-export type withAccountId<TArgs extends MethodArgs> = {
+export type WithAccountId<TArgs extends MethodArgs> = {
 	readonly accountId: AccountId;
 } & TArgs;
 
@@ -51,7 +51,7 @@ export type MailboxGetArgs = ReadonlyDeep<{
 
 export const withMailboxGet = (
 	chain: InvocationChain,
-	args: withAccountId<MailboxGetArgs>,
+	args: WithAccountId<MailboxGetArgs>,
 ): [InvocationChain, BrandedCallId<'Mailbox/get'>] => {
 	const callId = nextCallId(chain) as BrandedCallId<'Mailbox/get'>;
 	return [append(chain, ['Mailbox/get', args, callId]), callId];
@@ -65,7 +65,7 @@ export type QueryEmailsArgs = ReadonlyDeep<{
 
 export const withEmailQuery = (
 	chain: InvocationChain,
-	args: withAccountId<QueryEmailsArgs>,
+	args: WithAccountId<QueryEmailsArgs>,
 ): [InvocationChain, BrandedCallId<'Email/query'>] => {
 	const callId = nextCallId(chain) as BrandedCallId<'Email/query'>;
 	return [append(chain, ['Email/query', args, callId]), callId];
@@ -78,7 +78,7 @@ export type EmailGetArgs = ReadonlyDeep<{
 
 export const withEmailGet = (
 	chain: InvocationChain,
-	args: withAccountId<EmailGetArgs>,
+	args: WithAccountId<EmailGetArgs>,
 ): [InvocationChain, BrandedCallId<'Email/get'>] => {
 	const callId = nextCallId(chain) as BrandedCallId<'Email/get'>;
 	return [append(chain, ['Email/get', args, callId]), callId];

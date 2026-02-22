@@ -6,7 +6,13 @@ import type { ErrorResult } from '~/lib/types';
 import type { QueryEmailsArgs } from './chain';
 import type { JmapRequest } from './operations';
 import { execute, getMailboxes, queryEmails } from './operations';
-import { JmapResponseSchema, type JmapSession, JmapSessionSchema } from './schemas';
+import {
+	type EmailGetResponse,
+	JmapResponseSchema,
+	type JmapSession,
+	JmapSessionSchema,
+	type MailboxGetResponse,
+} from './schemas';
 
 const discover = (host: string, token: string): ResultAsync<JmapSession, ErrorResult> =>
 	safeFetch(`${host}/.well-known/jmap`, {
@@ -35,8 +41,8 @@ const makeCall =
 export type JmapClient = {
 	session: JmapSession;
 	call: (jmapRequest: JmapRequest) => ResultAsync<unknown[], ErrorResult>;
-	getMailboxes: () => ResultAsync<unknown, ErrorResult>;
-	queryEmails: (args?: QueryEmailsArgs) => ResultAsync<unknown, ErrorResult>;
+	getMailboxes: () => ResultAsync<MailboxGetResponse, ErrorResult>;
+	queryEmails: (args?: QueryEmailsArgs) => ResultAsync<EmailGetResponse, ErrorResult>;
 };
 
 export const createJmapClient = (

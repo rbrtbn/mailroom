@@ -60,7 +60,7 @@ export const MailboxGetResponseSchema = z.object({
 	list: z.array(MailboxSchema),
 	notFound: z.array(z.string()),
 });
-export type MailboxGetResponse = z.infer<typeof MailboxGetResponseSchema>;
+export type MailboxGetResponse = ReadonlyDeep<z.infer<typeof MailboxGetResponseSchema>>;
 
 export const EmailSchema = z.object({
 	id: z.string(),
@@ -76,4 +76,4 @@ export const EmailGetResponseSchema = z.object({
 	list: z.array(EmailSchema),
 	notFound: z.array(z.string()),
 });
-export type EmailGetResponse = z.infer<typeof EmailGetResponseSchema>;
+export type EmailGetResponse = ReadonlyDeep<z.infer<typeof EmailGetResponseSchema>>;
