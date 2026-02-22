@@ -6,20 +6,28 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "mailroom",
 	"main": "src/index.ts",
-	"compatibility_date": "2026-02-19",
-	"compatibility_flags": ["nodejs_compat"],
+	"compatibility_date": "2026-02-21",
+	// "compatibility_flags": ["nodejs_compat"],
+	"tsconfig": "tsconfig.build.json",
 	"triggers": {
 		"crons": ["*/2 * * * *"],
 	},
 	"kv_namespaces": [
 		{
 			"binding": "STATE_KV",
-			"id": "__KV_NAMESPACE_ID__",
+			"id": "d26f2e953e73451e9b00cd8e1550fcdd",
 		},
 	],
 	"observability": {
 		"enabled": true,
 		"head_sampling_rate": 1, // 100% of invocations
+	},
+	"vars": {
+		"FASTMAIL_TOKEN": "__FASTMAIL_TOKEN__",
+		"DEEPL_API_KEY": "__DEEPL_API_KEY__",
+		"RESEND_API_KEY": "__RESEND_API_KEY__",
+		"PUSHOVER_USER_KEY": "__PUSHOVER_USER_KEY__",
+		"PUSHOVER_APP_TOKEN": "__PUSHOVER_APP_TOKEN__",
 	},
 	/**
 	 * Smart Placement

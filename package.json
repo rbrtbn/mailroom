@@ -1,18 +1,20 @@
 {
 	"name": "mailroom",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"private": true,
 	"scripts": {
 		"setup": "scripts/setup.sh",
 		"dev": "scripts/dev.sh --test-scheduled",
+		"build": "pnpm generate-types && pnpm tsc",
 		"push-secrets": "scripts/push-secrets.sh",
 		"deploy": "wrangler deploy",
 		"deploy:dry": "wrangler deploy --dry-run",
 		"test": "vitest run",
 		"test:watch": "vitest watch",
-		"typecheck": "tsc --noEmit",
+		"test:coverage": "vitest run --coverage",
+		"generate-types": "wrangler types",
+		"typecheck": "pnpm tsc --noEmit",
 		"lint": "eslint src test",
-		"cf-typegen": "wrangler types",
 		"prepare": "husky"
 	},
 	"devDependencies": {
@@ -21,15 +23,17 @@
 		"@types/node": "^25.3.0",
 		"eslint": "^9",
 		"eslint-plugin-functional": "^9.0.2",
+		"eslint-plugin-neverthrow": "^1.1.4",
 		"eslint-plugin-simple-import-sort": "^12.1.1",
 		"eslint-plugin-unused-imports": "^4.4.1",
 		"husky": "^9.1.7",
 		"jiti": "^2.6.1",
 		"lint-staged": "^16.2.7",
 		"prettier": "^3.8.1",
+		"type-fest": "^5.4.4",
 		"typescript": "^5.5.2",
 		"typescript-eslint": "^8.56.0",
-		"vitest": "^3.2.4",
+		"vitest": "~3.2.4",
 		"wrangler": "^4.67.0"
 	},
 	"dependencies": {

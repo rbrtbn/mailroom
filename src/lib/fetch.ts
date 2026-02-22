@@ -1,9 +1,12 @@
 import { err, ok, Result, ResultAsync } from 'neverthrow';
 import { z } from 'zod/v4';
 
-import type { NetworkError, ValidationError } from '~/lib/errors';
+import type { NetworkError, ValidationError } from './types';
 
-export const safeFetch = (url: string, init?: Readonly<RequestInit>): ResultAsync<Response, NetworkError> =>
+export const safeFetch = (
+	url: string,
+	init?: Readonly<RequestInit>,
+): ResultAsync<Response, NetworkError> =>
 	ResultAsync.fromPromise(fetch(url, init), (error) => ({
 		type: 'network',
 		message: error instanceof Error ? error.message : 'Unknown error',

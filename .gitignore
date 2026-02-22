@@ -165,7 +165,7 @@ dist
 .env*
 !.env.example
 .wrangler/
-wrangler.jsonc
+# wrangler.jsonc
 
 # macOS
 .DS_Store

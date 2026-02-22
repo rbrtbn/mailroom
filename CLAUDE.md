@@ -8,18 +8,18 @@ Mailroom is a Cloudflare Workers scheduled cron job that polls Fastmail via JMAP
 
 ## Commands
 
-| Task                      | Command                                                             |
-| ------------------------- | ------------------------------------------------------------------- |
-| Install deps              | `pnpm install`                                                      |
-| Dev server                | `pnpm dev`                                                          |
-| Trigger scheduled handler | `curl "http://localhost:8787/__scheduled?cron=*/2+*+*+*+*"`         |
-| Run tests                 | `pnpm test`                                                         |
-| Run tests (watch)         | `pnpm test:watch`                                                   |
-| Type check                | `pnpm typecheck`                                                    |
-| Lint                      | `pnpm lint`                                                         |
-| Deploy (dry run)          | `pnpm deploy:dry`                                                   |
-| Deploy                    | `pnpm deploy`                                                       |
-| Regenerate CF types       | `pnpm cf-typegen` (run after changing bindings in `wrangler.jsonc`) |
+| Task                      | Command                                                                 |
+| ------------------------- | ----------------------------------------------------------------------- |
+| Install deps              | `pnpm install`                                                          |
+| Dev server                | `pnpm dev`                                                              |
+| Trigger scheduled handler | `curl "http://localhost:8787/__scheduled?cron=*/2+*+*+*+*"`             |
+| Run tests                 | `pnpm test`                                                             |
+| Run tests (watch)         | `pnpm test:watch`                                                       |
+| Type check                | `pnpm typecheck`                                                        |
+| Lint                      | `pnpm lint`                                                             |
+| Deploy (dry run)          | `pnpm deploy:dry`                                                       |
+| Deploy                    | `pnpm deploy`                                                           |
+| Regenerate CF types       | `pnpm generate-types` (run after changing bindings in `wrangler.jsonc`) |
 
 ## Architecture
 
@@ -41,10 +41,6 @@ All fallible operations return `Result<T, E>` or `ResultAsync<T, E>` from `never
 - **`src/lib/env.ts`** — Validates `Env` bindings at startup via Zod, returns `ResultAsync`.
 - **`src/lib/zod-neverthrow.ts`** — Bridge utilities: `safeFetch`, `safeJson`, `safeParse`.
 - **`src/type-utils.ts`** — `Immutable<T>`, `InferImmutable<T>` type helpers.
-
-### Path Alias
-
-`~/*` maps to `./src/*` (e.g., `import { parseEnv } from '~/lib/env'`).
 
 ### Runtime
 

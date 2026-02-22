@@ -1,6 +1,5 @@
+import type { ReadonlyDeep } from 'type-fest';
 import { z } from 'zod/v4';
-
-import type { InferImmutable } from '~/type-utils';
 
 const JmapAccountSchema = z.object({
 	name: z.string(),
@@ -19,7 +18,7 @@ export const JmapSessionSchema = z.object({
 	capabilities: z.record(z.string(), z.unknown()),
 });
 
-export type JmapSession = InferImmutable<typeof JmapSessionSchema>;
+export type JmapSession = ReadonlyDeep<z.infer<typeof JmapSessionSchema>>;
 
 export const AccountIdSchema = z
 	.object({
@@ -29,7 +28,7 @@ export const AccountIdSchema = z
 	})
 	.transform((data) => data.primaryAccounts['urn:ietf:params:jmap:mail']);
 
-export type AccountId = InferImmutable<typeof AccountIdSchema>;
+export type AccountId = ReadonlyDeep<z.infer<typeof AccountIdSchema>>;
 
 const MethodResponseSchema = z.tuple([
 	z.string(), // method name
@@ -41,3 +40,40 @@ export const JmapResponseSchema = z.object({
 	methodResponses: z.array(MethodResponseSchema),
 	sessionState: z.string(),
 });
+
+const EmailAddressSchema = z.object({
+	name: z.string().nullable(),
+	email: z.string(),
+});
+
+export const MailboxSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	role: z.string().nullable(),
+	totalEmails: z.number(),
+	unreadEmails: z.number(),
+});
+
+export const MailboxGetResponseSchema = z.object({
+	accountId: z.string(),
+	state: z.string(),
+	list: z.array(MailboxSchema),
+	notFound: z.array(z.string()),
+});
+export type MailboxGetResponse = z.infer<typeof MailboxGetResponseSchema>;
+
+export const EmailSchema = z.object({
+	id: z.string(),
+	subject: z.string().nullable(),
+	from: z.array(EmailAddressSchema).nullable(),
+	receivedAt: z.string(),
+	preview: z.string(),
+});
+
+export const EmailGetResponseSchema = z.object({
+	accountId: z.string(),
+	state: z.string(),
+	list: z.array(EmailSchema),
+	notFound: z.array(z.string()),
+});
+export type EmailGetResponse = z.infer<typeof EmailGetResponseSchema>;

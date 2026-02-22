@@ -4,26 +4,29 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import unusedImports from 'eslint-plugin-unused-imports';
 import tseslint from 'typescript-eslint';
 
-type RuleOptions<R> = R extends { create(context: Readonly<{ options: infer O }>): unknown } ? O : never;
+type RuleOptions<R> = R extends { create(context: Readonly<{ options: infer O }>): unknown }
+	? O
+	: never;
 
 type RawImmutableConfig = RuleOptions<(typeof functional.rules)['prefer-immutable-types']>[0];
 type ImmutableOverride = NonNullable<RawImmutableConfig['overrides']>[number];
 
 type PreferImmutableTypesConfig = Partial<Omit<RawImmutableConfig, 'overrides'>> & {
 	overrides?: Array<
-		Omit<ImmutableOverride, 'options'> & { options?: Partial<NonNullable<ImmutableOverride['options']>> }
+		Omit<ImmutableOverride, 'options'> & {
+			options?: Partial<NonNullable<ImmutableOverride['options']>>;
+		}
 	>;
 };
 
 export default tseslint.config(
-	{ ignores: ['worker-configuration.d.ts', 'test/test-env.d.ts'] },
+	{ ignores: ['worker-configuration.d.ts'] },
 	eslint.configs.recommended,
 	tseslint.configs.strictTypeChecked,
 	{
 		languageOptions: {
 			parserOptions: {
 				projectService: true,
-				tsconfigRootDir: import.meta.dirname,
 			},
 		},
 	},
@@ -61,6 +64,10 @@ export default tseslint.config(
 								{ from: 'lib', pattern: 'Request' },
 							],
 							options: { enforcement: 'ReadonlyShallow' },
+						},
+						{
+							specifiers: [{ from: 'file', pattern: 'DeepReadonly' }],
+							options: { enforcement: 'None' },
 						},
 					],
 				} satisfies PreferImmutableTypesConfig,
