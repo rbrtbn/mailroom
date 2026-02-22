@@ -6,10 +6,17 @@ import tseslint from 'typescript-eslint';
 
 type RuleOptions<R> = R extends { create(context: Readonly<{ options: infer O }>): unknown } ? O : never;
 
-type PreferImmutableTypesConfig = Partial<RuleOptions<(typeof functional.rules)['prefer-immutable-types']>[0]>;
+type RawImmutableConfig = RuleOptions<(typeof functional.rules)['prefer-immutable-types']>[0];
+type ImmutableOverride = NonNullable<RawImmutableConfig['overrides']>[number];
+
+type PreferImmutableTypesConfig = Partial<Omit<RawImmutableConfig, 'overrides'>> & {
+	overrides?: Array<
+		Omit<ImmutableOverride, 'options'> & { options?: Partial<NonNullable<ImmutableOverride['options']>> }
+	>;
+};
 
 export default tseslint.config(
-	{ ignores: ['worker-configuration.d.ts'] },
+	{ ignores: ['worker-configuration.d.ts', 'test/test-env.d.ts'] },
 	eslint.configs.recommended,
 	tseslint.configs.strictTypeChecked,
 	{
@@ -37,9 +44,25 @@ export default tseslint.config(
 			// Good FP habits (warnings are fine)
 			'functional/no-loop-statements': 'warn',
 			'functional/prefer-immutable-types': [
-				'warn',
+				'error',
 				{
-					enforcement: 'ReadonlyShallow',
+					enforcement: 'ReadonlyDeep',
+					ignoreInferredTypes: true,
+					returnTypes: 'None',
+					variables: 'None',
+					parameters: {
+						ignoreTypePattern: ['^z\\.Zod', '^ZodType'],
+					},
+					overrides: [
+						{
+							specifiers: [
+								{ from: 'lib', pattern: 'RequestInit' },
+								{ from: 'lib', pattern: 'Response' },
+								{ from: 'lib', pattern: 'Request' },
+							],
+							options: { enforcement: 'ReadonlyShallow' },
+						},
+					],
 				} satisfies PreferImmutableTypesConfig,
 			],
 
@@ -71,12 +94,6 @@ export default tseslint.config(
 			// Syntax/style
 			'simple-import-sort/imports': 'error',
 			'simple-import-sort/exports': 'error',
-			'no-restricted-imports': [
-				'error',
-				{
-					patterns: [{ group: ['./*', '../*'], message: 'Use ~/ path alias instead of relative imports.' }],
-				},
-			],
 			'object-shorthand': ['error', 'always'],
 		},
 	},
