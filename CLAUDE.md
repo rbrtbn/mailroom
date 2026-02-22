@@ -1,58 +1,23 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
 Mailroom is a Cloudflare Workers scheduled cron job that polls Fastmail via JMAP, enriches emails (language detection, categorization, translation), and sends notifications. It runs every 2 minutes. Currently in early development (Phase 1 of 5).
 
 ## Commands
 
-| Task                      | Command                                                                 |
-| ------------------------- | ----------------------------------------------------------------------- |
-| Install deps              | `pnpm install`                                                          |
-| Dev server                | `pnpm dev`                                                              |
-| Trigger scheduled handler | `curl "http://localhost:8787/__scheduled?cron=*/2+*+*+*+*"`             |
-| Run tests                 | `pnpm test`                                                             |
-| Run tests (watch)         | `pnpm test:watch`                                                       |
-| Type check                | `pnpm typecheck`                                                        |
-| Lint                      | `pnpm lint`                                                             |
-| Deploy (dry run)          | `pnpm deploy:dry`                                                       |
-| Deploy                    | `pnpm deploy`                                                           |
-| Regenerate CF types       | `pnpm generate-types` (run after changing bindings in `wrangler.jsonc`) |
+Standard commands via `package.json` scripts (`pnpm dev`, `pnpm test`, `pnpm lint`, etc). Non-obvious:
+
+- Trigger scheduled handler locally: `curl "http://localhost:8787/__scheduled?cron=*/2+*+*+*+*"`
+- Regenerate CF types after changing bindings: `pnpm generate-types`
 
 ## Architecture
 
-### Pure Core / Impure Shell
+**Pure core / impure shell.** All fallible operations return `Result<T, E>` or `ResultAsync<T, E>` from neverthrow — no thrown exceptions. Errors are a discriminated union with `type` field (`NetworkError | ValidationError | JmapError`) in `src/lib/types.ts`. IO helpers (`safeFetch`, `safeJson`, `safeParse`) live in `src/lib/fetch.ts`.
 
-The codebase enforces a functional programming style via ESLint rules:
+**Runtime:** Cloudflare Workers (not Node.js). Tests run inside Workers runtime via `@cloudflare/vitest-pool-workers`. KV binding `STATE_KV` stores the JMAP delta cursor.
 
-- **No `let`, no mutation, no classes** — `functional/no-let`, `functional/immutable-data`, `functional/no-classes` are all errors
-- **Immutable parameters** — `functional/prefer-immutable-types` enforces `ReadonlyDeep` on function params
-- **Sorted imports** — `simple-import-sort` plugin, enforced as errors
-
-All fallible operations return `Result<T, E>` or `ResultAsync<T, E>` from `neverthrow` — no thrown exceptions in business logic. Errors use a discriminated union (`ErrorResult = NetworkError | ValidationError | JmapError`) defined in `src/lib/errors.ts`.
-
-### Key Modules
-
-- **`src/index.ts`** — Worker entry point with `fetch` and `scheduled` handlers. Singleton JMAP client cached across invocations.
-- **`src/jmap/client.ts`** — IO boundary: JMAP session discovery, API calls. Uses back-references for batched queries.
-- **`src/jmap/schemas.ts`** — Zod v4 schemas for JMAP responses.
-- **`src/lib/env.ts`** — Validates `Env` bindings at startup via Zod, returns `ResultAsync`.
-- **`src/lib/zod-neverthrow.ts`** — Bridge utilities: `safeFetch`, `safeJson`, `safeParse`.
-- **`src/type-utils.ts`** — `Immutable<T>`, `InferImmutable<T>` type helpers.
-
-### Runtime
-
-- **Target:** Cloudflare Workers (not Node.js) with `nodejs_compat` flag
-- **Tests:** Vitest with `@cloudflare/vitest-pool-workers` — tests run inside real Workers runtime via Miniflare/workerd
-- **KV binding:** `STATE_KV` stores JMAP delta cursor (`email:sinceState`)
-
-### Key Dependencies
-
-- `neverthrow` — typed `Result`/`ResultAsync` error handling
-- `zod` (v4) — runtime schema validation
-- `ts-pattern` — pattern matching (available, not yet used)
+**Zod v4** — import from `'zod/v4'`, not `'zod'`.
 
 ## Secrets
 
@@ -60,13 +25,10 @@ All fallible operations return `Result<T, E>` or `ResultAsync<T, E>` from `never
 
 ## Code Conventions
 
-- Tabs for indentation, LF line endings
 - Prefix unused parameters with `_` (e.g., `_event`, `_ctx`)
-- Unused vars pattern also allows `Schema$` suffix (for Zod schemas used only as types)
+- `Schema$` suffix allowed for Zod schemas used only as types
 - Use `satisfies` for type narrowing on exports (e.g., `satisfies ExportedHandler<Env>`)
-- Exhaustive `switch` statements required (`@typescript-eslint/switch-exhaustiveness-check`)
-- `object-shorthand: always` enforced
 
-## Planned Architecture (from docs/PLAN.md)
+## Roadmap
 
-See `docs/PLAN.md` for the full implementation roadmap. Upcoming phases include: JMAP delta polling with `sinceState`, email enrichment pipeline, DeepL translation, Pushover notifications, and a `/health` endpoint.
+See `docs/PLAN.md` for the full implementation plan (phases 1–5).

@@ -1,0 +1,15 @@
+{
+	"hooks": {
+		"PreToolUse": [
+			{
+				"matcher": "Read|Edit|Bash",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -qE '\\.(dev\\.vars|env)'; then echo 'BLOCKED: Secret file access denied. Use .env.example for variable names.' >&2; exit 1; fi"
+					}
+				]
+			}
+		]
+	}
+}
