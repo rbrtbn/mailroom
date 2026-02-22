@@ -5,6 +5,7 @@
 	"scripts": {
 		"setup": "scripts/setup.sh",
 		"dev": "scripts/dev.sh --test-scheduled",
+		"push-secrets": "scripts/push-secrets.sh",
 		"deploy": "wrangler deploy",
 		"deploy:dry": "wrangler deploy --dry-run",
 		"test": "vitest run",
