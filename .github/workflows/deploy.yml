@@ -14,26 +14,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-
-      - name: Resolve KV namespace ID
-        run: |
-          KV_ID=$(npx wrangler kv namespace list | jq -r '.[] | select(.title == "mailroom-state") | .id')
-          if [ -z "$KV_ID" ]; then
-            echo "::error::KV namespace 'mailroom-state' not found"
-            exit 1
-          fi
-          echo "KV_ID=$KV_ID" >> "$GITHUB_ENV"
-          echo "Resolved KV namespace ID: $KV_ID"
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Patch wrangler.jsonc with KV ID
-        run: sed -i 's/"__KV_NAMESPACE_ID__"/"'"$KV_ID"'"/' wrangler.jsonc
 
       - run: pnpm lint
       - run: pnpm typecheck
