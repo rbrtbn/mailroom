@@ -3,7 +3,15 @@ import path from 'path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+	optimizeDeps: {
+		exclude: ['@vitest/coverage-v8'],
+	},
 	test: {
+		coverage: {
+			provider: 'v8',
+			include: ['src/**/*.ts'],
+			exclude: ['**/*.spec.ts', '**/*.test.ts'],
+		},
 		projects: [
 			defineConfig({
 				test: {
@@ -13,6 +21,11 @@ export default defineConfig({
 						'~': path.resolve(__dirname, 'src'),
 					},
 					environment: 'node',
+					server: {
+						deps: {
+							external: ['@vitest/coverage-v8'],
+						},
+					},
 				},
 			}),
 			defineWorkersConfig({
@@ -25,6 +38,11 @@ export default defineConfig({
 					poolOptions: {
 						workers: {
 							wrangler: { configPath: './wrangler.jsonc' },
+						},
+					},
+					server: {
+						deps: {
+							external: ['@vitest/coverage-v8'],
 						},
 					},
 				},
