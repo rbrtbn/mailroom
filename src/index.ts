@@ -1,34 +1,48 @@
-import { ResultAsync } from 'neverthrow';
+import { errAsync, type ResultAsync } from 'neverthrow';
 import type { ReadonlyDeep } from 'type-fest';
 
 import { handleEnrich, handleInit, handleUnenriched } from './handlers';
 import { createJmapClient, type JmapClient } from './jmap/client';
 import { validateAccess } from './lib/auth';
-import { parseEnv } from './lib/env';
-import { jsonErr, jsonFromHandlerError } from './lib/response';
+import { parseEnv, type ValidEnv } from './lib/env';
+import { jsonFromHandlerError, jsonOk, mkHttpError } from './lib/response';
 import type { AccessConfig, ErrorResult, Handler, HandlerError } from './lib/types';
 
-const toAccessConfig = (env: ReadonlyDeep<Record<string, unknown>>): AccessConfig => ({
-	policyAud: typeof env['POLICY_AUD'] === 'string' ? env['POLICY_AUD'] : undefined,
-	cfTeamDomain: typeof env['CF_TEAM_DOMAIN'] === 'string' ? env['CF_TEAM_DOMAIN'] : undefined,
-});
+// ── Access config ───────────────────────────────────────────────────
+
+const toAccessConfig = (env: ReadonlyDeep<ValidEnv>): AccessConfig => {
+	if (env.POLICY_AUD === undefined) return { mode: 'bypass' };
+	if (env.CF_TEAM_DOMAIN === undefined) {
+		console.error(
+			'auth:misconfigured — POLICY_AUD set without CF_TEAM_DOMAIN, falling back to bypass',
+		);
+		return { mode: 'bypass' };
+	}
+	return { mode: 'enforce', policyAud: env.POLICY_AUD, cfTeamDomain: env.CF_TEAM_DOMAIN };
+};
+
+// ── JMAP client singleton ───────────────────────────────────────────
 
 const getFastmailClient = (() => {
 	// eslint-disable-next-line functional/no-let
 	let cached: ResultAsync<JmapClient, ErrorResult> | undefined;
-	return (env: ReadonlyDeep<Env>): ResultAsync<JmapClient, ErrorResult> => {
+	return (validEnv: ReadonlyDeep<ValidEnv>): ResultAsync<JmapClient, ErrorResult> => {
 		if (cached) return cached;
 		console.info('jmap:client_init');
-		cached = parseEnv(env).andThen((validEnv) =>
-			createJmapClient('https://api.fastmail.com', validEnv.FASTMAIL_TOKEN),
+		cached = createJmapClient('https://api.fastmail.com', validEnv.FASTMAIL_TOKEN).mapErr(
+			(error) => {
+				console.error('jmap:client_init_failed', { error: error.message });
+				cached = undefined;
+				return error;
+			},
 		);
-		return cached.mapErr((error) => {
-			console.error('jmap:client_init_failed', { error: error.message });
-			cached = undefined;
-			return error;
-		});
+		return cached;
 	};
 })();
+
+// ── Router ──────────────────────────────────────────────────────────
+
+const KNOWN_PATHS = new Set(['/init', '/emails/unenriched', '/emails/enrich']);
 
 const resolveHandler = (method: string, pathname: string): Handler | undefined => {
 	const key = `${method} ${pathname}`;
@@ -49,33 +63,32 @@ export default {
 		const { pathname } = new URL(req.url);
 		console.info('request:start', { method: req.method, pathname });
 
-		const handler = resolveHandler(req.method, pathname);
-		if (!handler) {
-			console.info('request:unmatched', { method: req.method, pathname });
-			return jsonErr('http', 'Not found', 404);
-		}
+		return parseEnv(env)
+			.andThen((validEnv) => {
+				const handler = resolveHandler(req.method, pathname);
+				if (!handler) {
+					const status = KNOWN_PATHS.has(pathname) ? 405 : 404;
+					const message = status === 405 ? 'Method not allowed' : 'Not found';
+					console.info('request:unmatched', { method: req.method, pathname, status });
+					return errAsync<unknown, HandlerError>(mkHttpError(status, message));
+				}
 
-		return validateAccess(req, toAccessConfig(env as unknown as Record<string, unknown>))
-			.andThen(() => getFastmailClient(env))
-			.andThen((client) =>
-				ResultAsync.fromPromise(handler(req, env, client), (error): HandlerError => {
-					console.error('handler:uncaught', {
-						pathname,
-						error: error instanceof Error ? error.message : 'unknown',
-					});
-					return {
-						type: 'network',
-						message: error instanceof Error ? error.message : 'Unexpected handler error',
-					};
-				}),
-			)
+				return validateAccess(req, toAccessConfig(validEnv))
+					.andThen(() => getFastmailClient(validEnv))
+					.andThen((client) => handler(req, env, client));
+			})
 			.match(
-				(response) => {
+				(data) => {
+					const response = jsonOk(data);
 					console.info('request:complete', { pathname, status: response.status });
 					return response;
 				},
 				(error) => {
-					console.error('request:error', { pathname, error: error.type, message: error.message });
+					console.error('request:error', {
+						pathname,
+						error: error.type,
+						message: error.message,
+					});
 					return jsonFromHandlerError(error);
 				},
 			);

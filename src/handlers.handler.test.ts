@@ -60,35 +60,38 @@ const mockEnv = (kv: KVNamespace = mockKv()): ReadonlyDeep<Env> =>
 
 const makeRequest = (url: string, init?: Readonly<RequestInit>) => new Request(url, init);
 
-const parseBody = async (response: Readonly<Response>) => {
-	const json: unknown = await response.json();
-	return json as Record<string, unknown>;
-};
-
 // ── handleInit ───────────────────────────────────────────────────────
 
 describe('handleInit', () => {
-	it('returns 409 when KV already has state', async () => {
+	it('returns HttpError 409 when KV already has state', async () => {
 		const kv = mockKv({ 'email:sinceState': 'existing-state' });
-		const response = await handleInit(makeRequest('https://x/init'), mockEnv(kv), mockClient());
+		const result = await handleInit(makeRequest('https://x/init'), mockEnv(kv), mockClient());
 
-		expect(response.status).toBe(409);
-		const body = await parseBody(response);
-		expect(body['ok']).toBe(false);
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) {
+			expect(result.error.type).toBe('http');
+			if (result.error.type === 'http') {
+				expect(result.error.status).toBe(409);
+			}
+		}
 	});
 
-	it('returns 404 when email list is empty', async () => {
+	it('returns HttpError 404 when email list is empty', async () => {
 		const client = mockClient({
 			queryEmails: () => okAsync(mockEmailResponse([])),
 		});
-		const response = await handleInit(makeRequest('https://x/init'), mockEnv(), client);
+		const result = await handleInit(makeRequest('https://x/init'), mockEnv(), client);
 
-		expect(response.status).toBe(404);
-		const body = await parseBody(response);
-		expect(body['ok']).toBe(false);
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) {
+			expect(result.error.type).toBe('http');
+			if (result.error.type === 'http') {
+				expect(result.error.status).toBe(404);
+			}
+		}
 	});
 
-	it('returns 200 and stores state on success', async () => {
+	it('returns Ok with email and state on success', async () => {
 		const kv = mockKv();
 		const emails: ReadonlyDeep<EmailGetResponse['list']> = [
 			{
@@ -103,17 +106,19 @@ describe('handleInit', () => {
 			queryEmails: () => okAsync(mockEmailResponse(emails, 'new-state')),
 		});
 
-		const response = await handleInit(makeRequest('https://x/init'), mockEnv(kv), client);
+		const result = await handleInit(makeRequest('https://x/init'), mockEnv(kv), client);
 
-		expect(response.status).toBe(200);
-		const body = await parseBody(response);
-		expect(body['ok']).toBe(true);
+		expect(result.isOk()).toBe(true);
+		if (result.isOk()) {
+			const data = result.value as Record<string, unknown>;
+			expect(data['state']).toBe('new-state');
+		}
 
 		const storedState = await kv.get('email:sinceState');
 		expect(storedState).toBe('new-state');
 	});
 
-	it('returns 502 when KV put fails', async () => {
+	it('returns network error when KV put fails', async () => {
 		const kv = mockFailingKv();
 		const emails: ReadonlyDeep<EmailGetResponse['list']> = [
 			{
@@ -128,26 +133,64 @@ describe('handleInit', () => {
 			queryEmails: () => okAsync(mockEmailResponse(emails)),
 		});
 
-		const response = await handleInit(makeRequest('https://x/init'), mockEnv(kv), client);
+		const result = await handleInit(makeRequest('https://x/init'), mockEnv(kv), client);
 
-		expect(response.status).toBe(502);
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) {
+			expect(result.error.type).toBe('network');
+		}
+	});
+
+	it('returns jmap error when queryEmails fails', async () => {
+		const client = mockClient({
+			queryEmails: () =>
+				errAsync({
+					type: 'jmap',
+					method: 'Email/query',
+					message: 'Server error',
+				} satisfies ErrorResult),
+		});
+
+		const result = await handleInit(makeRequest('https://x/init'), mockEnv(), client);
+
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) {
+			expect(result.error.type).toBe('jmap');
+		}
+	});
+
+	it('returns network error when KV get fails', async () => {
+		const kv = {
+			get: () => Promise.reject(new Error('KV read failed')),
+			put: () => Promise.resolve(),
+		} as unknown as KVNamespace;
+
+		const result = await handleInit(makeRequest('https://x/init'), mockEnv(kv), mockClient());
+
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) {
+			expect(result.error.type).toBe('network');
+		}
 	});
 });
 
 // ── handleUnenriched ─────────────────────────────────────────────────
 
 describe('handleUnenriched', () => {
-	it('returns 400 for invalid limit', async () => {
-		const response = await handleUnenriched(
+	it('returns validation error for invalid limit', async () => {
+		const result = await handleUnenriched(
 			makeRequest('https://x/emails/unenriched?limit=0'),
 			mockEnv(),
 			mockClient(),
 		);
 
-		expect(response.status).toBe(400);
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) {
+			expect(result.error.type).toBe('validation');
+		}
 	});
 
-	it('returns 200 with query params', async () => {
+	it('returns Ok with emails on success', async () => {
 		const emails: ReadonlyDeep<EmailGetResponse['list']> = [
 			{
 				id: 'e-1',
@@ -161,23 +204,71 @@ describe('handleUnenriched', () => {
 			queryEmails: () => okAsync(mockEmailResponse(emails)),
 		});
 
-		const response = await handleUnenriched(
+		const result = await handleUnenriched(
 			makeRequest('https://x/emails/unenriched?limit=10&from=bob'),
 			mockEnv(),
 			client,
 		);
 
-		expect(response.status).toBe(200);
-		const body = await parseBody(response);
-		expect(body['ok']).toBe(true);
+		expect(result.isOk()).toBe(true);
+		if (result.isOk()) {
+			const data = result.value as Record<string, unknown>;
+			expect(data['emails']).toBeDefined();
+		}
+	});
+
+	it('returns validation error for invalid datetime in before param', async () => {
+		const result = await handleUnenriched(
+			makeRequest('https://x/emails/unenriched?before=not-a-date'),
+			mockEnv(),
+			mockClient(),
+		);
+
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) {
+			expect(result.error.type).toBe('validation');
+		}
+	});
+
+	it('accepts valid ISO datetime in before/after params', async () => {
+		const result = await handleUnenriched(
+			makeRequest(
+				'https://x/emails/unenriched?before=2025-01-01T00:00:00Z&after=2024-12-01T00:00:00Z',
+			),
+			mockEnv(),
+			mockClient(),
+		);
+
+		expect(result.isOk()).toBe(true);
+	});
+
+	it('returns network error when queryEmails fails', async () => {
+		const client = mockClient({
+			queryEmails: () =>
+				errAsync({
+					type: 'network',
+					message: 'Connection refused',
+				} satisfies ErrorResult),
+		});
+
+		const result = await handleUnenriched(
+			makeRequest('https://x/emails/unenriched'),
+			mockEnv(),
+			client,
+		);
+
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) {
+			expect(result.error.type).toBe('network');
+		}
 	});
 });
 
 // ── handleEnrich ─────────────────────────────────────────────────────
 
 describe('handleEnrich', () => {
-	it('returns 400 for empty ids array', async () => {
-		const response = await handleEnrich(
+	it('returns validation error for empty ids array', async () => {
+		const result = await handleEnrich(
 			makeRequest('https://x/emails/enrich', {
 				method: 'POST',
 				body: JSON.stringify({ ids: [] }),
@@ -187,11 +278,14 @@ describe('handleEnrich', () => {
 			mockClient(),
 		);
 
-		expect(response.status).toBe(400);
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) {
+			expect(result.error.type).toBe('validation');
+		}
 	});
 
-	it('returns 400 for malformed JSON body', async () => {
-		const response = await handleEnrich(
+	it('returns validation error for malformed JSON body', async () => {
+		const result = await handleEnrich(
 			makeRequest('https://x/emails/enrich', {
 				method: 'POST',
 				body: 'not json',
@@ -201,10 +295,13 @@ describe('handleEnrich', () => {
 			mockClient(),
 		);
 
-		expect(response.status).toBe(400);
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) {
+			expect(result.error.type).toBe('validation');
+		}
 	});
 
-	it('returns 200 with grouped domains on success', async () => {
+	it('returns Ok with grouped domains on success', async () => {
 		const emails: ReadonlyDeep<EmailGetResponse['list']> = [
 			{
 				id: 'e-1',
@@ -225,7 +322,7 @@ describe('handleEnrich', () => {
 			getEmailsByIds: () => okAsync(mockEmailResponse(emails)),
 		});
 
-		const response = await handleEnrich(
+		const result = await handleEnrich(
 			makeRequest('https://x/emails/enrich', {
 				method: 'POST',
 				body: JSON.stringify({ ids: ['e-1', 'e-2'] }),
@@ -235,16 +332,15 @@ describe('handleEnrich', () => {
 			client,
 		);
 
-		expect(response.status).toBe(200);
-		const body = await parseBody(response);
-		expect(body['ok']).toBe(true);
-
-		const data = body['data'] as Record<string, unknown>;
-		expect(data['totalEmails']).toBe(2);
-		expect(data['totalDomains']).toBe(1);
+		expect(result.isOk()).toBe(true);
+		if (result.isOk()) {
+			const data = result.value as Record<string, unknown>;
+			expect(data['totalEmails']).toBe(2);
+			expect(data['totalDomains']).toBe(1);
+		}
 	});
 
-	it('returns error when JMAP client fails', async () => {
+	it('returns jmap error when JMAP client fails', async () => {
 		const client = mockClient({
 			getEmailsByIds: () =>
 				errAsync({
@@ -254,7 +350,7 @@ describe('handleEnrich', () => {
 				} satisfies ErrorResult),
 		});
 
-		const response = await handleEnrich(
+		const result = await handleEnrich(
 			makeRequest('https://x/emails/enrich', {
 				method: 'POST',
 				body: JSON.stringify({ ids: ['e-1'] }),
@@ -264,6 +360,9 @@ describe('handleEnrich', () => {
 			client,
 		);
 
-		expect(response.status).toBe(500);
+		expect(result.isErr()).toBe(true);
+		if (result.isErr()) {
+			expect(result.error.type).toBe('jmap');
+		}
 	});
 });

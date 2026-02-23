@@ -29,7 +29,7 @@ import { bind, exec } from './state';
 
 // ── The core abstraction ───────────────────────────────────────────
 // A JmapOperation is pure data: how to build the chain, and how to
-// interpret the response. No I/O, no session, no fetch.
+// interpret the response. No I/O, no fetch. Receives accountId from session.
 
 type JmapOperation<T> = {
 	readonly capabilities: readonly Capability[];

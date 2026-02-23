@@ -1,9 +1,12 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { okAsync, ResultAsync } from 'neverthrow';
+import type { ReadonlyDeep } from 'type-fest';
 
 import { httpErr } from './response';
 import type { AccessConfig, HttpError } from './types';
 
+// Cache avoids re-constructing the keyset function and URL object per request.
+// jose has its own internal JWKS cache, but this eliminates the setup overhead.
 const jwksCache = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
 
 const getJwks = (teamDomain: string) => {
@@ -17,29 +20,33 @@ const getJwks = (teamDomain: string) => {
 
 export const validateAccess = (
 	req: Readonly<Request>,
-	config: AccessConfig,
+	config: ReadonlyDeep<AccessConfig>,
 ): ResultAsync<void, HttpError> => {
-	const { policyAud, cfTeamDomain } = config;
-	// Auth is opt-in: skip JWT verification when POLICY_AUD is not configured (local dev).
-	if (!policyAud) {
-		console.warn('auth:bypass — POLICY_AUD not configured');
+	// Auth is opt-in: skip JWT verification when POLICY_AUD is not configured.
+	// In production, POLICY_AUD is always set via wrangler secrets.
+	// Bypass only applies to local dev where the env var is absent.
+	if (config.mode === 'bypass') {
+		const { pathname } = new URL(req.url);
+		console.warn('auth:bypass — POLICY_AUD not configured', {
+			pathname,
+			note: 'Set POLICY_AUD and CF_TEAM_DOMAIN to enforce Cloudflare Access in production',
+		});
 		return okAsync(undefined);
 	}
 
 	const token = req.headers.get('cf-access-jwt-assertion');
-	if (!token) return httpErr(401, 'Missing access token');
-
-	if (!cfTeamDomain) return httpErr(500, 'CF_TEAM_DOMAIN not configured');
+	if (token === null) return httpErr(401, 'Missing access token');
 
 	return ResultAsync.fromPromise(
-		jwtVerify(token, getJwks(cfTeamDomain), {
-			audience: policyAud,
-			issuer: `https://${cfTeamDomain}`,
+		jwtVerify(token, getJwks(config.cfTeamDomain), {
+			audience: config.policyAud,
+			issuer: `https://${config.cfTeamDomain}`,
 		}),
 		(error) => {
-			const message = error instanceof Error ? error.message : 'Token verification failed';
-			console.error('auth:verify_failed', { message });
-			return { type: 'http' as const, status: 403 as const, message };
+			console.error('auth:verify_failed', {
+				message: error instanceof Error ? error.message : 'Token verification failed',
+			});
+			return { type: 'http' as const, status: 403 as const, message: 'Access denied' };
 		},
 	).map(() => undefined);
 };

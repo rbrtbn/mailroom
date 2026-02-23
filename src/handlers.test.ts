@@ -46,9 +46,8 @@ describe('groupByDomain', () => {
 
 		const result = groupByDomain(emails);
 
-		expect(result['github.com']?.emails.length).toBe(2);
 		expect(result['github.com']?.emails).toHaveLength(2);
-		expect(result['gitlab.com']?.emails.length).toBe(1);
+		expect(result['gitlab.com']?.emails).toHaveLength(1);
 	});
 
 	it('uses _unknown for emails with no from address', () => {

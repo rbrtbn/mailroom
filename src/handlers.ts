@@ -4,14 +4,15 @@ import { z } from 'zod/v4';
 import type { EmailGetResponse } from './jmap/schemas';
 import { safeJsonBody, safeParse } from './lib/fetch';
 import { safeKvGet, safeKvPut } from './lib/kv';
-import { httpErr, jsonFromHandlerError, jsonOk } from './lib/response';
+import { httpErr } from './lib/response';
 import type { Handler } from './lib/types';
 
-// ── Pure helpers ────────────────────────────────────────────────────
+// ── Domain helpers ──────────────────────────────────────────────────
 
 export const extractDomain = (email: string): string => {
 	const at = email.lastIndexOf('@');
-	return at === -1 ? '_unknown' : email.slice(at + 1) || '_unknown';
+	const domain = email.slice(at + 1);
+	return at === -1 ? '_unknown' : domain !== '' ? domain : '_unknown';
 };
 
 type EmailEntry = EmailGetResponse['list'][number];
@@ -37,8 +38,8 @@ export const groupByDomain = (
 const UnenrichedQuerySchema = z.object({
 	from: z.string().optional(),
 	subject: z.string().optional(),
-	before: z.string().optional(),
-	after: z.string().optional(),
+	before: z.iso.datetime().optional(),
+	after: z.iso.datetime().optional(),
 	limit: z.coerce.number().int().min(1).max(100).default(50),
 	inMailbox: z.string().optional(),
 });
@@ -74,8 +75,7 @@ export const handleInit: Handler = (_req, env, client) =>
 						state: emails.state,
 					}))
 				: httpErr(404, 'No unread emails found');
-		})
-		.match(jsonOk, jsonFromHandlerError);
+		});
 
 // ── GET /emails/unenriched ──────────────────────────────────────────
 
@@ -83,11 +83,11 @@ const buildUnenrichedFilter = (
 	params: ReadonlyDeep<z.infer<typeof UnenrichedQuerySchema>>,
 ): ReadonlyDeep<Record<string, unknown>> => ({
 	notKeyword: '$enriched',
-	...(params.from && { from: params.from }),
-	...(params.subject && { subject: params.subject }),
-	...(params.before && { before: params.before }),
-	...(params.after && { after: params.after }),
-	...(params.inMailbox && { inMailbox: params.inMailbox }),
+	...(params.from !== undefined ? { from: params.from } : {}),
+	...(params.subject !== undefined ? { subject: params.subject } : {}),
+	...(params.before !== undefined ? { before: params.before } : {}),
+	...(params.after !== undefined ? { after: params.after } : {}),
+	...(params.inMailbox !== undefined ? { inMailbox: params.inMailbox } : {}),
 });
 
 export const handleUnenriched: Handler = (req, _env, client) => {
@@ -105,8 +105,7 @@ export const handleUnenriched: Handler = (req, _env, client) => {
 		.map((emails: ReadonlyDeep<EmailGetResponse>) => ({
 			emails: emails.list,
 			state: emails.state,
-		}))
-		.match(jsonOk, jsonFromHandlerError);
+		}));
 };
 
 // ── POST /emails/enrich ─────────────────────────────────────────────
@@ -129,5 +128,4 @@ export const handleEnrich: Handler = (req, _env, client) =>
 				totalDomains: Object.keys(domains).length,
 				notFound: emails.notFound,
 			};
-		})
-		.match(jsonOk, jsonFromHandlerError);
+		});

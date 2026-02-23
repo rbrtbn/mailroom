@@ -12,7 +12,7 @@ const json = (body: unknown, status: number) =>
 
 export const jsonOk = (data: unknown, status = 200) => json({ ok: true, data }, status);
 
-export const jsonErr = (type: HandlerError['type'], message: string, status: number) =>
+export const jsonErr = (type: HandlerError['type'], message: string, status: HttpErrorStatus) =>
 	json({ ok: false, error: { type, message } }, status);
 
 export const jsonFromError = (error: ReadonlyDeep<ErrorResult>): Response =>
@@ -25,7 +25,13 @@ export const jsonFromError = (error: ReadonlyDeep<ErrorResult>): Response =>
 export const jsonFromHandlerError = (error: ReadonlyDeep<HandlerError>): Response =>
 	error.type === 'http' ? jsonErr('http', error.message, error.status) : jsonFromError(error);
 
+export const mkHttpError = (status: HttpErrorStatus, message: string): HttpError => ({
+	type: 'http',
+	status,
+	message,
+});
+
 export const httpErr = <T = never>(
 	status: HttpErrorStatus,
 	message: string,
-): ResultAsync<T, HttpError> => errAsync({ type: 'http', status, message });
+): ResultAsync<T, HttpError> => errAsync(mkHttpError(status, message));
