@@ -165,7 +165,9 @@ dist
 .env*
 !.env.example
 .wrangler/
-# wrangler.jsonc
+
+# Internal docs (not for public/PR consumption)
+docs/internal/
 
 # macOS
 .DS_Store

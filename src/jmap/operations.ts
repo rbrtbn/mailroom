@@ -1,7 +1,7 @@
 import { type Result, type ResultAsync } from 'neverthrow';
 import type { ReadonlyDeep } from 'type-fest';
 
-import { safeParse } from '~/lib/fetch';
+import { safeParse } from '~/lib/parse';
 import type { ErrorResult } from '~/lib/types';
 
 import {
@@ -12,6 +12,7 @@ import {
 	type InvocationChain,
 	type QueryEmailsArgs,
 	withEmailGet,
+	withEmailGetByIds,
 	withEmailQuery,
 	withMailboxGet,
 } from './chain';
@@ -28,7 +29,7 @@ import { bind, exec } from './state';
 
 // ── The core abstraction ───────────────────────────────────────────
 // A JmapOperation is pure data: how to build the chain, and how to
-// interpret the response. No I/O, no session, no fetch.
+// interpret the response. No I/O, no fetch. Receives accountId from session.
 
 type JmapOperation<T> = {
 	readonly capabilities: readonly Capability[];
@@ -78,6 +79,19 @@ export const queryEmailsMonadic = (args?: QueryEmailsArgs): JmapOperation<EmailG
 			),
 		),
 	parseResponse: ([, emails]) => safeParse(EmailGetResponseSchema, emails),
+});
+
+export const getEmailsByIds = (ids: readonly string[]): JmapOperation<EmailGetResponse> => ({
+	capabilities: MAIL_CAPS,
+	buildChain: (accountId) => {
+		const [chain] = withEmailGetByIds(emptyChain, {
+			accountId,
+			ids: [...ids],
+			properties: ['subject', 'from', 'receivedAt', 'preview'],
+		});
+		return chain;
+	},
+	parseResponse: ([emails]) => safeParse(EmailGetResponseSchema, emails),
 });
 
 // ── Executor: the only part that touches I/O ───────────────────────

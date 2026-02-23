@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getMailboxes, queryEmails, toRequest } from './operations';
+import { getEmailsByIds, getMailboxes, queryEmails, toRequest } from './operations';
 import type { AccountId, JmapSession } from './schemas';
 
 // ── Layer 1: Chain building (pure, no mocks needed) ────────────────
@@ -51,6 +51,52 @@ describe('queryEmails.parseResponse', () => {
 
 	it('rejects malformed response', () => {
 		const result = queryEmails().parseResponse([null, { garbage: true }]);
+		expect(result.isErr()).toBe(true);
+	});
+});
+
+// ── getEmailsByIds (layers 1+2) ─────────────────────────────────────
+
+describe('getEmailsByIds.buildChain', () => {
+	it('produces a single Email/get with direct ids', () => {
+		const chain = getEmailsByIds(['id-1', 'id-2']).buildChain('acc-123' as AccountId);
+
+		expect(chain.invocations).toHaveLength(1);
+		expect(chain.invocations[0]?.[0]).toBe('Email/get');
+
+		const args = chain.invocations[0]?.[1] as Record<string, unknown> | undefined;
+		expect(args?.['ids']).toEqual(['id-1', 'id-2']);
+		expect(args?.['properties']).toEqual(['subject', 'from', 'receivedAt', 'preview']);
+		expect(args?.['#ids']).toBeUndefined();
+	});
+});
+
+describe('getEmailsByIds.parseResponse', () => {
+	it('parses valid response from index 0', () => {
+		const raw = [
+			{
+				accountId: 'x',
+				state: 's',
+				list: [
+					{
+						id: '1',
+						subject: 'hi',
+						from: [{ name: 'Alice', email: 'alice@example.com' }],
+						receivedAt: '2025-01-01T00:00:00Z',
+						preview: 'hey',
+					},
+				],
+				notFound: ['id-missing'],
+			},
+		];
+		const result = getEmailsByIds(['1', 'id-missing']).parseResponse(raw);
+		expect(result.isOk()).toBe(true);
+		expect(result._unsafeUnwrap().list[0]?.subject).toBe('hi');
+		expect(result._unsafeUnwrap().notFound).toEqual(['id-missing']);
+	});
+
+	it('rejects malformed response', () => {
+		const result = getEmailsByIds(['1']).parseResponse([{ garbage: true }]);
 		expect(result.isErr()).toBe(true);
 	});
 });

@@ -84,9 +84,22 @@ export const withEmailGet = (
 	return [append(chain, ['Email/get', args, callId]), callId];
 };
 
+export type EmailGetByIdsArgs = ReadonlyDeep<{
+	ids: string[];
+	properties: string[];
+}>;
+
+export const withEmailGetByIds = (
+	chain: InvocationChain,
+	args: WithAccountId<EmailGetByIdsArgs>,
+): [InvocationChain, BrandedCallId<'Email/get'>] => {
+	const callId = nextCallId(chain) as BrandedCallId<'Email/get'>;
+	return [append(chain, ['Email/get', args, callId]), callId];
+};
+
 // ── Type-safe result references ────────────────────────────────────
-// The callId brand constrains which method names are valid,
-// and path could be narrowed per-method too.
+// The callId brand constrains which method names are valid.
+// Path is already narrowed per-method via string literal unions.
 
 export const emailQueryRef = (
 	callId: BrandedCallId<'Email/query'>,

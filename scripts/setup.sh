@@ -21,9 +21,8 @@ if ! command -v jq &>/dev/null; then
 fi
 
 if [[ ! -f "$CONFIG_FILE" ]]; then
-  echo "📄 Creating ${CONFIG_FILE} from template..."
-  cp wrangler.jsonc.tpl "$CONFIG_FILE"
-  echo "  ✅ Created ${CONFIG_FILE}"
+  echo "❌ ${CONFIG_FILE} not found. It should be checked into the repo."
+  exit 1
 fi
 
 echo "🔍 Looking for existing KV namespace '${KV_NAMESPACE}'..."

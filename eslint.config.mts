@@ -65,11 +65,7 @@ export default tseslint.config(
 							],
 							options: { enforcement: 'ReadonlyShallow' },
 						},
-						{
-							specifiers: [{ from: 'file', pattern: 'DeepReadonly' }],
-							options: { enforcement: 'None' },
-						},
-					],
+						],
 				} satisfies PreferImmutableTypesConfig,
 			],
 
@@ -81,6 +77,18 @@ export default tseslint.config(
 					allowNumber: true,
 				},
 			],
+			'@typescript-eslint/strict-boolean-expressions': [
+				'error',
+				{
+					allowNullableObject: true,
+					allowNullableBoolean: true,
+					allowString: false,
+					allowNumber: false,
+					allowNullableString: false,
+					allowNullableNumber: false,
+				},
+			],
+			'@typescript-eslint/prefer-nullish-coalescing': 'error',
 
 			// Unused vars/imports (replace TS built-in for better import detection)
 			'@typescript-eslint/no-unused-vars': 'off',
@@ -97,11 +105,6 @@ export default tseslint.config(
 					ignoreRestSiblings: true,
 				},
 			],
-
-			// NOTE: eslint-plugin-neverthrow (installed) is NOT activated here.
-			// It uses the legacy context.parserServices.program API which is
-			// incompatible with typescript-eslint v8's projectService mode.
-			// Re-evaluate when the plugin supports the newer getTypeAtLocation() API.
 
 			// Syntax/style
 			'simple-import-sort/imports': 'error',

@@ -13,7 +13,7 @@ Standard commands via `package.json` scripts (`pnpm dev`, `pnpm test`, `pnpm lin
 
 ## Architecture
 
-**Pure core / impure shell.** All fallible operations return `Result<T, E>` or `ResultAsync<T, E>` from neverthrow — no thrown exceptions. Errors are a discriminated union with `type` field (`NetworkError | ValidationError | JmapError`) in `src/lib/types.ts`. IO helpers (`safeFetch`, `safeJson`, `safeParse`) live in `src/lib/fetch.ts`.
+**Pure core / impure shell.** All fallible operations return `Result<T, E>` or `ResultAsync<T, E>` from neverthrow — no thrown exceptions. Errors are a discriminated union with `type` field (`NetworkError | ValidationError | JmapError`) in `src/lib/types.ts`. IO helpers (`safeFetch`, `safeJson`) live in `src/lib/fetch.ts`. Schema validation (`safeParse`) lives in `src/lib/parse.ts`.
 
 **Runtime:** Cloudflare Workers (not Node.js). Tests run inside Workers runtime via `@cloudflare/vitest-pool-workers`. KV binding `STATE_KV` stores the JMAP delta cursor.
 
