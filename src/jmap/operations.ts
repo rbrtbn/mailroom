@@ -14,6 +14,7 @@ import {
 	withEmailGet,
 	withEmailGetByIds,
 	withEmailQuery,
+	withEmailSet,
 	withMailboxGet,
 } from './chain';
 import {
@@ -21,6 +22,8 @@ import {
 	AccountIdSchema,
 	type EmailGetResponse,
 	EmailGetResponseSchema,
+	type EmailSetResponse,
+	EmailSetResponseSchema,
 	type JmapSession,
 	type MailboxGetResponse,
 	MailboxGetResponseSchema,
@@ -92,6 +95,25 @@ export const getEmailsByIds = (ids: readonly string[]): JmapOperation<EmailGetRe
 		return chain;
 	},
 	parseResponse: ([emails]) => safeParse(EmailGetResponseSchema, emails),
+});
+
+export const setEmailKeywords = (
+	updates: ReadonlyDeep<Record<string, Record<string, true | null>>>,
+): JmapOperation<EmailSetResponse> => ({
+	capabilities: MAIL_CAPS,
+	buildChain: (accountId) => {
+		const update = Object.fromEntries(
+			Object.entries(updates).map(([emailId, keywords]) => [
+				emailId,
+				Object.fromEntries(
+					Object.entries(keywords).map(([keyword, value]) => [`keywords/${keyword}`, value]),
+				),
+			]),
+		);
+		const [chain] = withEmailSet(emptyChain, { accountId, update });
+		return chain;
+	},
+	parseResponse: ([result]) => safeParse(EmailSetResponseSchema, result),
 });
 
 // ── Executor: the only part that touches I/O ───────────────────────

@@ -1,4 +1,5 @@
 import { type ResultAsync } from 'neverthrow';
+import type { ReadonlyDeep } from 'type-fest';
 
 import { safeFetch, safeJson } from '~/lib/fetch';
 import { safeParse } from '~/lib/parse';
@@ -6,9 +7,10 @@ import type { ErrorResult } from '~/lib/types';
 
 import type { QueryEmailsArgs } from './chain';
 import type { JmapRequest } from './operations';
-import { execute, getEmailsByIds, getMailboxes, queryEmails } from './operations';
+import { execute, getEmailsByIds, getMailboxes, queryEmails, setEmailKeywords } from './operations';
 import {
 	type EmailGetResponse,
+	type EmailSetResponse,
 	JmapResponseSchema,
 	type JmapSession,
 	JmapSessionSchema,
@@ -45,6 +47,9 @@ export type JmapClient = {
 	getMailboxes: () => ResultAsync<MailboxGetResponse, ErrorResult>;
 	queryEmails: (args?: QueryEmailsArgs) => ResultAsync<EmailGetResponse, ErrorResult>;
 	getEmailsByIds: (ids: readonly string[]) => ResultAsync<EmailGetResponse, ErrorResult>;
+	setEmailKeywords: (
+		updates: ReadonlyDeep<Record<string, Record<string, true | null>>>,
+	) => ResultAsync<EmailSetResponse, ErrorResult>;
 };
 
 export const createJmapClient = (
@@ -60,5 +65,7 @@ export const createJmapClient = (
 			getMailboxes: () => execute(session, call, getMailboxes),
 			queryEmails: (args?: QueryEmailsArgs) => execute(session, call, queryEmails(args)),
 			getEmailsByIds: (ids: readonly string[]) => execute(session, call, getEmailsByIds(ids)),
+			setEmailKeywords: (updates: ReadonlyDeep<Record<string, Record<string, true | null>>>) =>
+				execute(session, call, setEmailKeywords(updates)),
 		};
 	});

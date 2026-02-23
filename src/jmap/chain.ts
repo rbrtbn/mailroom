@@ -5,7 +5,7 @@ import type { AccountId } from './schemas';
 // ── Types ──────────────────────────────────────────────────────────
 
 export type Capability = 'urn:ietf:params:jmap:core' | 'urn:ietf:params:jmap:mail';
-export type MethodName = 'Mailbox/get' | 'Email/query' | 'Email/get';
+export type MethodName = 'Mailbox/get' | 'Email/query' | 'Email/get' | 'Email/set';
 export type MethodArgs = ReadonlyDeep<Record<string, unknown>>;
 export type CallId = string;
 export type Invocation = ReadonlyDeep<[MethodName, MethodArgs, CallId]>;
@@ -95,6 +95,18 @@ export const withEmailGetByIds = (
 ): [InvocationChain, BrandedCallId<'Email/get'>] => {
 	const callId = nextCallId(chain) as BrandedCallId<'Email/get'>;
 	return [append(chain, ['Email/get', args, callId]), callId];
+};
+
+export type EmailSetArgs = ReadonlyDeep<{
+	update?: Record<string, Record<string, unknown>>;
+}>;
+
+export const withEmailSet = (
+	chain: InvocationChain,
+	args: WithAccountId<EmailSetArgs>,
+): [InvocationChain, BrandedCallId<'Email/set'>] => {
+	const callId = nextCallId(chain) as BrandedCallId<'Email/set'>;
+	return [append(chain, ['Email/set', args, callId]), callId];
 };
 
 // ── Type-safe result references ────────────────────────────────────
