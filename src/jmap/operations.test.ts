@@ -55,7 +55,7 @@ describe('queryEmails.parseResponse', () => {
 	});
 });
 
-// ── getEmailsByIds ──────────────────────────────────────────────────
+// ── getEmailsByIds (layers 1+2) ─────────────────────────────────────
 
 describe('getEmailsByIds.buildChain', () => {
 	it('produces a single Email/get with direct ids', () => {

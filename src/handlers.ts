@@ -1,11 +1,11 @@
 import type { ReadonlyDeep } from 'type-fest';
 import { z } from 'zod/v4';
 
-import type { JmapClient } from './jmap/client';
 import type { EmailGetResponse } from './jmap/schemas';
 import { safeJsonBody, safeParse } from './lib/fetch';
 import { safeKvGet, safeKvPut } from './lib/kv';
 import { httpErr, jsonFromHandlerError, jsonOk } from './lib/response';
+import type { Handler } from './lib/types';
 
 // ── Pure helpers ────────────────────────────────────────────────────
 
@@ -14,16 +14,9 @@ export const extractDomain = (email: string): string => {
 	return at === -1 ? '_unknown' : email.slice(at + 1) || '_unknown';
 };
 
-type EmailEntry = ReadonlyDeep<{
-	id: string;
-	subject: string | null;
-	from: { name: string | null; email: string }[] | null;
-	receivedAt: string;
-	preview: string;
-}>;
+type EmailEntry = EmailGetResponse['list'][number];
 
 type DomainGroup = ReadonlyDeep<{
-	count: number;
 	emails: EmailEntry[];
 }>;
 
@@ -34,8 +27,8 @@ export const groupByDomain = (
 		const domain = extractDomain(email.from?.[0]?.email ?? '');
 		const existing = acc[domain];
 		const updated: DomainGroup = existing
-			? { count: existing.count + 1, emails: [...existing.emails, email] }
-			: { count: 1, emails: [email] };
+			? { emails: [...existing.emails, email] }
+			: { emails: [email] };
 		return { ...acc, [domain]: updated };
 	}, {});
 
@@ -53,14 +46,6 @@ const UnenrichedQuerySchema = z.object({
 const EnrichBodySchema = z.object({
 	ids: z.array(z.string().nonempty()).nonempty(),
 });
-
-// ── Handler type ────────────────────────────────────────────────────
-
-type Handler = (
-	req: Readonly<Request>,
-	env: ReadonlyDeep<Env>,
-	client: ReadonlyDeep<JmapClient>,
-) => Promise<Response>;
 
 // ── POST /init ──────────────────────────────────────────────────────
 
@@ -131,7 +116,13 @@ export const handleEnrich: Handler = (req, _env, client) =>
 		.andThen((body) => safeParse(EnrichBodySchema, body))
 		.andThen((parsed) => client.getEmailsByIds(parsed.ids))
 		.map((emails) => {
-			const domains = groupByDomain(emails.list);
+			const grouped = groupByDomain(emails.list);
+			const domains = Object.fromEntries(
+				Object.entries(grouped).map(([domain, group]) => [
+					domain,
+					{ count: group.emails.length, emails: group.emails },
+				]),
+			);
 			return {
 				domains,
 				totalEmails: emails.list.length,
