@@ -6,19 +6,24 @@ import { createJmapClient, type JmapClient } from './jmap/client';
 import { validateAccess } from './lib/auth';
 import { parseEnv, type ValidEnv } from './lib/env';
 import { jsonFromHandlerError, jsonOk, mkHttpError } from './lib/response';
-import type { AccessConfig, ErrorResult, Handler, HandlerError } from './lib/types';
+import type { AccessConfig, ErrorResult, Handler, HandlerError, HttpError } from './lib/types';
 
 // ── Access config ───────────────────────────────────────────────────
 
-const toAccessConfig = (env: ReadonlyDeep<ValidEnv>): AccessConfig => {
-	if (env.POLICY_AUD === undefined) return { mode: 'bypass' };
-	if (env.CF_TEAM_DOMAIN === undefined) {
-		console.error(
-			'auth:misconfigured — POLICY_AUD set without CF_TEAM_DOMAIN, falling back to bypass',
-		);
+const toAccessConfig = (env: ReadonlyDeep<ValidEnv>): AccessConfig | HttpError => {
+	if (env.POLICY_AUD !== undefined && env.CF_TEAM_DOMAIN !== undefined) {
+		return { mode: 'enforce', policyAud: env.POLICY_AUD, cfTeamDomain: env.CF_TEAM_DOMAIN };
+	}
+	if (env.AUTH_BYPASS === 'true') {
+		console.warn('auth:bypass — AUTH_BYPASS is set; do not use in production');
 		return { mode: 'bypass' };
 	}
-	return { mode: 'enforce', policyAud: env.POLICY_AUD, cfTeamDomain: env.CF_TEAM_DOMAIN };
+	return {
+		type: 'http',
+		status: 500,
+		message:
+			'Auth not configured: set POLICY_AUD + CF_TEAM_DOMAIN, or AUTH_BYPASS=true for local dev',
+	};
 };
 
 // ── JMAP client singleton ───────────────────────────────────────────
@@ -73,7 +78,12 @@ export default {
 					return errAsync<unknown, HandlerError>(mkHttpError(status, message));
 				}
 
-				return validateAccess(req, toAccessConfig(validEnv))
+				const accessConfig = toAccessConfig(validEnv);
+				if ('type' in accessConfig) {
+					return errAsync<unknown, HandlerError>(accessConfig);
+				}
+
+				return validateAccess(req, accessConfig)
 					.andThen(() => getFastmailClient(validEnv))
 					.andThen((client) => handler(req, env, client));
 			})
@@ -97,6 +107,6 @@ export default {
 	// eslint-disable-next-line @typescript-eslint/require-await
 	async scheduled(_event, _env, _ctx) {
 		console.info('cron:triggered');
-		// Cron handler — not yet implemented
+		// Cron handler — not yet implemented. Cron trigger disabled in wrangler.jsonc.
 	},
 } satisfies ExportedHandler<Env>;

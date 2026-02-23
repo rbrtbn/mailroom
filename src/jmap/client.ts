@@ -1,6 +1,7 @@
 import { type ResultAsync } from 'neverthrow';
 
-import { safeFetch, safeJson, safeParse } from '~/lib/fetch';
+import { safeFetch, safeJson } from '~/lib/fetch';
+import { safeParse } from '~/lib/parse';
 import type { ErrorResult } from '~/lib/types';
 
 import type { QueryEmailsArgs } from './chain';

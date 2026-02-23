@@ -22,15 +22,9 @@ export const validateAccess = (
 	req: Readonly<Request>,
 	config: ReadonlyDeep<AccessConfig>,
 ): ResultAsync<void, HttpError> => {
-	// Auth is opt-in: skip JWT verification when POLICY_AUD is not configured.
-	// In production, POLICY_AUD is always set via wrangler secrets.
-	// Bypass only applies to local dev where the env var is absent.
+	// Auth is enforced by default. Bypass requires explicit AUTH_BYPASS=true
+	// in env (intended for local dev only — see toAccessConfig in index.ts).
 	if (config.mode === 'bypass') {
-		const { pathname } = new URL(req.url);
-		console.warn('auth:bypass — POLICY_AUD not configured', {
-			pathname,
-			note: 'Set POLICY_AUD and CF_TEAM_DOMAIN to enforce Cloudflare Access in production',
-		});
 		return okAsync(undefined);
 	}
 

@@ -65,11 +65,7 @@ export default tseslint.config(
 							],
 							options: { enforcement: 'ReadonlyShallow' },
 						},
-						{
-							specifiers: [{ from: 'file', pattern: 'DeepReadonly' }],
-							options: { enforcement: 'None' },
-						},
-					],
+						],
 				} satisfies PreferImmutableTypesConfig,
 			],
 

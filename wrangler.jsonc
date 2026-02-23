@@ -4,9 +4,6 @@
 	"main": "src/index.ts",
 	"compatibility_date": "2026-02-21",
 	"tsconfig": "tsconfig.build.json",
-	"triggers": {
-		"crons": ["*/2 * * * *"],
-	},
 	"kv_namespaces": [
 		{
 			"binding": "STATE_KV",
@@ -25,5 +22,6 @@
 		"RESEND_API_KEY": "__RESEND_API_KEY__",
 		"PUSHOVER_USER_KEY": "__PUSHOVER_USER_KEY__",
 		"PUSHOVER_APP_TOKEN": "__PUSHOVER_APP_TOKEN__",
+		"AUTH_BYPASS": "true",
 	},
 }

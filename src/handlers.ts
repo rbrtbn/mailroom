@@ -2,8 +2,9 @@ import type { ReadonlyDeep } from 'type-fest';
 import { z } from 'zod/v4';
 
 import type { EmailGetResponse } from './jmap/schemas';
-import { safeJsonBody, safeParse } from './lib/fetch';
+import { safeJsonBody } from './lib/fetch';
 import { safeKvGet, safeKvPut } from './lib/kv';
+import { safeParse } from './lib/parse';
 import { httpErr } from './lib/response';
 import type { Handler } from './lib/types';
 
@@ -110,6 +111,8 @@ export const handleUnenriched: Handler = (req, _env, client) => {
 
 // ── POST /emails/enrich ─────────────────────────────────────────────
 
+// TODO: Placeholder — groups emails by sender domain but does not yet run
+// language detection, categorization, translation, or notification (Phase 2+).
 export const handleEnrich: Handler = (req, _env, client) =>
 	safeJsonBody(req)
 		.andThen((body) => safeParse(EnrichBodySchema, body))

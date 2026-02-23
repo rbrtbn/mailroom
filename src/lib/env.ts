@@ -12,6 +12,7 @@ export const EnvSchema = z.object({
 	PUSHOVER_APP_TOKEN: z.string().nonempty().optional(),
 	POLICY_AUD: z.string().nonempty().optional(),
 	CF_TEAM_DOMAIN: z.string().nonempty().optional(),
+	AUTH_BYPASS: z.string().optional(),
 });
 
 export type ValidEnv = ReadonlyDeep<z.infer<typeof EnvSchema>>;

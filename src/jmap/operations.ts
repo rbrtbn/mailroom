@@ -1,7 +1,7 @@
 import { type Result, type ResultAsync } from 'neverthrow';
 import type { ReadonlyDeep } from 'type-fest';
 
-import { safeParse } from '~/lib/fetch';
+import { safeParse } from '~/lib/parse';
 import type { ErrorResult } from '~/lib/types';
 
 import {

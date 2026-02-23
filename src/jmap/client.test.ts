@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 
 import { type CallFn, execute, getMailboxes } from './operations';
 import type { JmapSession } from './schemas';
-// Import your worker so you can unit test it
 
 const fakeSession: JmapSession = {
 	apiUrl: 'https://jmap.example.com/api/',
