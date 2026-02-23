@@ -7,7 +7,7 @@
 	"kv_namespaces": [
 		{
 			"binding": "STATE_KV",
-			"id": "d26f2e953e73451e9b00cd8e1550fcdd",
+			"id": "__KV_NAMESPACE_ID__",
 		},
 	],
 	"observability": {
