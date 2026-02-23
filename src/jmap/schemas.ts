@@ -77,3 +77,12 @@ export const EmailGetResponseSchema = z.object({
 	notFound: z.array(z.string()),
 });
 export type EmailGetResponse = ReadonlyDeep<z.infer<typeof EmailGetResponseSchema>>;
+
+export const EmailSetResponseSchema = z.object({
+	accountId: z.string(),
+	oldState: z.string(),
+	newState: z.string(),
+	updated: z.record(z.string(), z.unknown()).nullable(),
+	notUpdated: z.record(z.string(), z.unknown()).nullable(),
+});
+export type EmailSetResponse = ReadonlyDeep<z.infer<typeof EmailSetResponseSchema>>;
