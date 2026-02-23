@@ -14,7 +14,7 @@ const toAccessConfig = (env: ReadonlyDeep<ValidEnv>): AccessConfig | HttpError =
 	if (env.POLICY_AUD !== undefined && env.CF_TEAM_DOMAIN !== undefined) {
 		return { mode: 'enforce', policyAud: env.POLICY_AUD, cfTeamDomain: env.CF_TEAM_DOMAIN };
 	}
-	if (env.AUTH_BYPASS === 'true') {
+	if (env.AUTH_BYPASS) {
 		console.warn('auth:bypass — AUTH_BYPASS is set; do not use in production');
 		return { mode: 'bypass' };
 	}
